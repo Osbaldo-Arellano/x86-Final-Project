@@ -22,7 +22,7 @@ mGetString MACRO mssg, input, buffer, length
 	mov     edx, mssg
 	call	WriteString
 	mov     edx, input
-	mov     ecx, buffer
+	mov     ecx, buffer 
 	call	ReadString
 	mov     length, eax
 
@@ -61,23 +61,22 @@ sumMssg        BYTE	  "The sum of these numbers is: ",0
 avgMssg        BYTE	  "The truncated average is:    ",0
 goodbye        BYTE	  "Thanks for playing!",13,10,0
 
-positive       BYTE "Num was positive",0
-negative       BYTE "Num was negative",0
-overflow       BYTE "Overflow detected",13,10,0
+positive       BYTE   "Num was positive",0
+negative       BYTE   "Num was negative",0
+overflow       BYTE   "Overflow detected",13,10,0
 
-overflowed     BYTE "Overflow",13,10,0
-
-input          BYTE	  ?
-inputLen       DWORD  ?
 validArray     SDWORD MAX_ARR_LEN DUP(0)
+input          BYTE	  13 DUP(0)
+inputLen       DWORD  ?
+resultArray    BYTE   MAX_ARR_LEN DUP(0)
 
-mssg BYTE "Displaying arr",13,10,13,10,0
+mssg          BYTE "Displaying arr",13,10,13,10,0
 
 validFlag      BYTE   ?
 
-isValid        DWORD  ?            ; Flag set when user input is valid 
-isNegative     DWORD  ?            ; Flag set when user input is negative
-isPositive     DWORD  ?            ; Flag set when user input is positive
+isValid        DWORD  ?            ; Flag 
+isNegative     DWORD  ?            ; Flag
+isPositive     DWORD  ?            ; Flag 
 
 .code
 main PROC
@@ -95,8 +94,8 @@ _readLoop:
 	mov     isPositive, 0
 
 	push    OFFSET isValid                  ; Flag for checking if current number is valid 
-	push    OFFSET error                    ; Displays when getting invalid input
 	push    esi                             ; Array that holds valid inputs... increments if valid flag is set. otehrwise, stays the same 
+	push    OFFSET error                    ; Displays when getting invalid input
 	push    OFFSET inputMssg                ; Title Message
 	push	OFFSET inputLen                 ; Will hold the length of user input 
 	push    OFFSET input                    ; Array that holds user input in form of ASCII chars 
@@ -109,16 +108,20 @@ _readLoop:
 	mov     isValid, 0                      ; Reset isValid flag for next byte string 
 	add     esi, 4
 	loop	_readLoop
+	mov     esi, OFFSET validArray          ; Point to beginning of array again
 	jmp     _continue
 
 _notValid:
 	inc     ecx
 	loop    _readLoop
+
 _continue:
-	push LENGTHOF validArray
-	push OFFSET mssg
-	push OFFSET validArray
-	call displayList
+	;push LENGTHOF validArray
+	;push OFFSET mssg
+	;push OFFSET validArray
+	;call displayList
+	push    resultArray
+
 
 	Invoke ExitProcess,0	
 main ENDP
@@ -183,7 +186,7 @@ ReadVal PROC
 	push    ebp		
 	mov     ebp, esp
 
-	mov     edi, [ebp + 20]        ; Points to array that will hold valid inputs 
+	mov     edi, [ebp + 24]        ; Points to array that will hold valid inputs 
 
 	; mGetString(titleMssg, inputArr, buffer, inputLength)
 	mGetString  [ebp + 16], [ebp + 8], BUFFER, [ebp + 12]
@@ -204,23 +207,29 @@ _checkLoop:
 
 _convert:
 	push    eax
+	xor     eax, eax ; changed, rm
 	mov     eax, edx    
 	mov     ebx, 10
 	mul     ebx
 	jo      _overflow
+	xor     ecx, ecx
 	mov     ecx, eax
 	pop     eax
 	sub     al, 48
 	add     eax, ecx
+	jnge    _carried              ; Jumps if addition resulted in a carry 
 	mov     edx, eax
+
 	pop     ecx
-	loop	_checkLoop	
+	loop	_checkLoop
+	jo      _OV2
 	jmp     _done
 
 _invalid: 
-	mov    edx, [ebp + 24]        ; Display error message
+	mov    edx, [ebp + 20]        ; Display error message
 	mDisplayString edx
 	mov    esi, 0 
+	mov    eax, 0
 	jmp    _returnInvalid
 
 ; ---------------
@@ -275,10 +284,23 @@ _negate:
 	pop    ebp
 	ret    24
 
+_OV2:
+	mov    edx, [ebp + 20]
+	mDisplayString edx 
+	mov    esi, 0
+	jmp    _returnInvalid
+
+_carried:
+	pop eax
+	mov    edx, [ebp + 20]
+	mDisplayString edx 
+	mov    esi, 0
+	jmp    _returnInvalid
+
 _overflow:
 	pop    eax
 	pop    ecx
-	mov    edx, [ebp + 24]
+	mov    edx, [ebp + 20]
 	mDisplayString edx 
 	mov    esi, 0
 	jmp    _returnInvalid
@@ -296,7 +318,14 @@ ReadVal ENDP
 ; 
 ; ---------------------------------------------------------------
 WriteVal PROC
+	push    ebp
+	mov     ebp, esp
 
+	
+
+	pop		ebp
+
+	ret	8
 WriteVal ENDP
 
 END main
